@@ -1,0 +1,77 @@
+module ipchange {
+
+  namespace "http://cisco.com/ipchange";
+  prefix ipchange;
+
+  import ietf-inet-types {
+    prefix inet;
+  }
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+
+  description "Example service that uses seconday ip address to apply changes";
+
+  revision 2017-10-05 {
+    description
+      "Initial revision.";
+  }
+
+  //Augment the seconday address and also a leaf to keep the original address
+  // needed to "rollback" to the original after commit
+  augment /ncs:devices/ncs:device {
+      leaf secondary-ipaddress {
+          type inet:ipv4-address;
+      }
+      leaf original-ipaddress {
+          config false;
+          tailf:cdb-oper {
+            tailf:persistent true;
+          }
+          type inet:ipv4-address;
+      }
+  }
+
+  list ipchange {
+    description "This is an RFS example service";
+
+    key name;
+    leaf name {
+      tailf:info "Unique service id";
+      tailf:cli-allow-range;
+      type string;
+    }
+
+    uses ncs:service-data;
+    ncs:servicepoint ipchange-servicepoint;
+
+    leaf device {
+      type leafref {
+        path "/ncs:devices/ncs:device/ncs:name";
+      }
+    }
+
+    leaf use-secondary-ipaddress {
+      must "/ncs:devices/ncs:device[current()/../ipchange:device]/ipchange:secondary-ipaddress" {
+        error-message "Must set secondary-ipaddress /devices/device/<device>/secondary-ipaddress";
+      }
+      type empty;
+    }
+    tailf:action set-original-ip {
+      tailf:actionpoint setoriginalip;
+      //input {
+      //  leaf command {
+      //    type string;
+      //  }
+     // }
+      output {
+        leaf result {
+          type string;
+        }
+      }
+    }
+  }
+}
