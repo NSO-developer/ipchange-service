@@ -20,27 +20,6 @@ class ServiceCallbacks(Service):
         template = ncs.template.Template(service)
         template.apply('ipchange-template', vars)
 
-    # The pre_modification() and post_modification() callbacks are optional,
-    # and are invoked outside FASTMAP. pre_modification() is invoked before
-    # create, update, or delete of the service, as indicated by the enum
-    # ncs_service_operation op parameter. Conversely
-    # post_modification() is invoked after create, update, or delete
-    # of the service. These functions can be useful e.g. for
-    # allocations that should be stored and existing also when the
-    # service instance is removed.
-
-    # @Service.pre_lock_create
-    # def cb_pre_lock_create(self, tctx, root, service, proplist):
-    #     self.log.info('Service plcreate(service=', service._path, ')')
-
-    # @Service.pre_modification
-    # def cb_pre_modification(self, tctx, op, kp, root, proplist):
-    #     self.log.info('Service premod(service=', kp, ')')
-
-    # @Service.post_modification
-    # def cb_post_modification(self, tctx, op, kp, root, proplist):
-    #     self.log.info('Service premod(service=', kp, ')')
-
 class setoriginalip(Action):
     @Action.action
     def cb_action(self, uinfo, name, kp, input, output):
@@ -54,13 +33,23 @@ class setoriginalip(Action):
             try:
                 service = ncs.maagic.get_node(trans, kp, shared=False)
                 root = ncs.maagic.get_root(trans)
+                print('running setoriginalip')
                 device = root.ncs__devices.device[service.device]
-                device.address = device.ipchange__original_ipaddress
-                del(device.ipchange__original_ipaddress)
-                print('delete use_seconday_ipaddress')
-                del(service.use_secondary_ipaddress)
+                if device.ipchange__original_ipaddress:
+                    device.address = device.ipchange__original_ipaddress
+                    print('changed address back to ' + str(device.ipchange__original_ipaddress))
+                    del(device.ipchange__original_ipaddress)
+                    print('deleted ipchange__original_ipaddress')
+
+                if device.ipchange__secondary_ipaddress:
+                    print('secondary address: ' + device.ipchange__secondary_ipaddress)
+
+                if service.use_secondary_ipaddress:
+                    del(service.use_secondary_ipaddress)
+                    print('deleted use_secondary_ipaddress')
+
                 output.result += 'OK'
-                print('changed ip back to ' + str(device.ipchange__original_ipaddress))
+
             except KeyError:
                 output.result = "Error: wrong key in path (i.e no service found): " + str(service)
                 return
