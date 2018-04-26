@@ -1,4 +1,5 @@
 # ipchange-service
+
 NSO service that changes the device ip-address (in NSO) before pushing the service config and then changing it back to the old.
 
 It works by augmenting a leaf secondary-ipaddress and an oper leaf original-ipaddress under /devices/device. Then when you want you service to use the secondary-ipaddress for a commit you set the service leaf use-secondary-ipaddress. After using the secondary-ipaddress a kicker that executes the action set-original-ip will change the /devices/device/address back to what was stored in original-ipaddress.
